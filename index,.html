@@ -1,0 +1,493 @@
+Here’s a complete, portrait-oriented sci-fi math and logic puzzle game. It gets harder as you progress, includes level selection and restart, and awards **2 hints every 10 levels completed**. Hints can be saved up to 2.
+
+Save it as `mathfi.html` and open it in a browser.
+
+````html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MATHFI — Logic Protocol</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #080b19;
+      --panel: #11182a;
+      --cyan: #66f1ff;
+      --purple: #aa7aff;
+      --muted: #9cacc7;
+      --line: #66f1ff35;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 18px 12px;
+      display: grid;
+      place-items: center;
+      color: #eff8ff;
+      font-family: system-ui, Segoe UI, sans-serif;
+      background:
+        radial-gradient(ellipse at 50% 0%, #202d52 0, transparent 48%),
+        linear-gradient(160deg, #090d1d, #070914 75%);
+    }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    .app {
+      width: min(100%, 440px);
+      min-height: min(850px, calc(100vh - 36px));
+      position: relative;
+      overflow: hidden;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 25px;
+      background: linear-gradient(160deg, #121b31f5, #0b1020f5);
+      box-shadow: 0 24px 80px #0009, inset 0 0 40px #66f1ff08;
+    }
+    .app::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: .16;
+      background-image: linear-gradient(#66f1ff1c 1px, transparent 1px),
+                        linear-gradient(90deg, #66f1ff1c 1px, transparent 1px);
+      background-size: 30px 30px;
+      mask-image: linear-gradient(to bottom, black, transparent 60%);
+    }
+    .content { position: relative; z-index: 1; }
+    header { text-align: center; margin-bottom: 20px; }
+    .eyebrow {
+      color: var(--cyan);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .28em;
+    }
+    h1 {
+      margin: 3px 0 0;
+      font-size: clamp(35px, 10vw, 48px);
+      line-height: 1;
+      letter-spacing: .13em;
+      text-shadow: 0 0 24px #66f1ff88;
+    }
+    .subtitle { color: var(--muted); font-size: 12px; margin-top: 8px; }
+    .status, .panel, .actions {
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: #0a1020cc;
+    }
+    .status {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      font-size: 12px;
+    }
+    .status strong { color: var(--cyan); }
+    .difficulty {
+      padding: 5px 9px;
+      border-radius: 99px;
+      color: #d7c2ff;
+      background: #aa7aff24;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+    .panel { padding: 17px; }
+    .label {
+      color: var(--cyan);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    .question {
+      min-height: 116px;
+      display: grid;
+      place-items: center;
+      margin: 12px 0;
+      padding: 15px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #15233a, #11172c);
+      color: #f5fbff;
+      text-align: center;
+      font-size: 19px;
+      font-weight: 700;
+      line-height: 1.65;
+      overflow-wrap: anywhere;
+      box-shadow: inset 0 0 24px #66f1ff0b;
+    }
+    .question .sequence {
+      color: var(--cyan);
+      font-size: clamp(18px, 5vw, 25px);
+      letter-spacing: .08em;
+    }
+    .answer-row { display: flex; gap: 9px; }
+    input {
+      min-width: 0;
+      flex: 1;
+      padding: 12px;
+      border: 1px solid #7283a255;
+      border-radius: 10px;
+      outline: none;
+      color: white;
+      background: #070c18;
+      text-align: center;
+      font-size: 18px;
+    }
+    input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px #66f1ff1b; }
+    .btn {
+      border: 1px solid #66f1ff66;
+      border-radius: 10px;
+      padding: 11px 14px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #17344b, #142643);
+      font-weight: 750;
+      transition: .15s ease;
+    }
+    .btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.2); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn.primary {
+      color: #07121e;
+      background: linear-gradient(135deg, #7df5ff, #78b9ff);
+    }
+    .btn.purple { border-color: #aa7aff77; background: #352453; }
+    .actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 9px; margin-top: 12px; }
+    .actions .btn { padding: 10px 6px; font-size: 12px; }
+    .message {
+      min-height: 24px;
+      margin-top: 11px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+    }
+    .message.good { color: #7dffba; }
+    .message.bad { color: #ff9aaf; }
+    .hint-box {
+      display: none;
+      margin-top: 10px;
+      padding: 11px;
+      border: 1px solid #aa7aff55;
+      border-radius: 10px;
+      color: #decaff;
+      background: #aa7aff12;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .hint-box.show { display: block; }
+    .progress { margin: 14px 2px 0; color: var(--muted); font-size: 11px; text-align: center; }
+    .screen { display: none; }
+    .screen.active { display: block; }
+    .menu-intro { color: var(--muted); font-size: 13px; line-height: 1.5; text-align: center; }
+    .level-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      max-height: 350px;
+      overflow: auto;
+      margin: 14px 0;
+      padding: 2px;
+    }
+    .level {
+      padding: 10px 0;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #111b30;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .level.selected { color: #07121e; background: var(--cyan); }
+    .level:disabled { opacity: .28; cursor: not-allowed; }
+    .menu-footer { display: grid; gap: 9px; }
+    .legend {
+      margin-top: 13px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.8;
+      text-align: center;
+    }
+    .legend b { color: #ded0ff; }
+    @media (max-height: 760px) {
+      body { padding: 8px; }
+      .app { min-height: 0; padding: 16px; }
+      .question { min-height: 95px; }
+      .level-grid { max-height: 250px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="content">
+      <header>
+        <div class="eyebrow">NEURAL PUZZLE SYSTEM</div>
+        <h1>MATHFI</h1>
+        <div class="subtitle">Crack the pattern. Advance the protocol.</div>
+      </header>
+
+      <section id="gameScreen" class="screen active">
+        <div class="status">
+          <span>LEVEL <strong id="levelText">1</strong></span>
+          <span id="difficulty" class="difficulty">Easy</span>
+          <span>HINTS <strong id="hintCount">0</strong></span>
+        </div>
+
+        <div class="panel">
+          <div class="label" id="typeLabel">Pattern analysis</div>
+          <div class="question" id="question"></div>
+          <div class="answer-row">
+            <input id="answer" inputmode="numeric" autocomplete="off" placeholder="Your answer">
+            <button id="submitBtn" class="btn primary">Submit</button>
+          </div>
+          <div id="message" class="message" aria-live="polite"></div>
+          <div id="hintBox" class="hint-box"></div>
+        </div>
+
+        <div class="actions">
+          <button id="hintBtn" class="btn purple">Hint</button>
+          <button id="restartBtn" class="btn">Restart</button>
+          <button id="menuBtn" class="btn">Levels</button>
+        </div>
+        <div id="progress" class="progress"></div>
+      </section>
+
+      <section id="menuScreen" class="screen">
+        <div class="panel">
+          <div class="label">Level selection</div>
+          <p class="menu-intro">Choose an unlocked level. Clear levels to unlock more and earn hint refills.</p>
+          <div id="levelGrid" class="level-grid"></div>
+          <div class="menu-footer">
+            <button id="playBtn" class="btn primary">Launch selected level</button>
+            <button id="continueBtn" class="btn">Continue current level</button>
+          </div>
+          <div class="legend">
+            <b>1–10 Easy</b> · <b>11–20 Medium</b> · <b>21–35 Hard</b><br>
+            <b>36–60 Expert</b> · <b>61+ Super Difficult</b><br>
+            Earn 2 hints per 10 levels cleared. Maximum bank: 2.
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const screens = { game: $("gameScreen"), menu: $("menuScreen") };
+
+    let level = 1;
+    let selectedLevel = 1;
+    let puzzle;
+    let hintsUsed = 0;
+    let hintCredits = Number(localStorage.getItem("mathfi-hints") || 0);
+    let unlocked = Number(localStorage.getItem("mathfi-unlocked") || 1);
+    let completed = Number(localStorage.getItem("mathfi-completed") || 0);
+    let solvedLevels = JSON.parse(localStorage.getItem("mathfi-solved") || "[]");
+
+    function difficultyFor(n) {
+      if (n <= 10) return "Easy";
+      if (n <= 20) return "Medium";
+      if (n <= 35) return "Hard";
+      if (n <= 60) return "Expert";
+      return "Super Difficult";
+    }
+
+    // Repeatable pseudo-random values keep a level's puzzle stable on restart.
+    function randomFor(n) {
+      let seed = (n * 9301 + 49297) % 233280;
+      return max => {
+        seed = (seed * 9301 + 49297) % 233280;
+        return Math.floor(seed / 233280 * max);
+      };
+    }
+
+    function makePuzzle(n) {
+      const rand = randomFor(n);
+      const kind = (n - 1) % 5;
+      const scale = Math.max(1, Math.floor(n / 10));
+
+      if (kind === 0) {
+        const start = 2 + rand(8) * scale;
+        const step = 2 + rand(7) * scale;
+        const count = Math.min(7, 4 + Math.floor(n / 20));
+        const values = Array.from({ length: count }, (_, i) => start + step * i);
+        return {
+          type: "Number sequence",
+          html: `Find the next number:<br><span class="sequence">${values.join(" &nbsp; · &nbsp; ")} &nbsp; · &nbsp; ?</span>`,
+          answer: start + step * count,
+          hints: [`Check how much each number increases by.`, `The same amount is added each time: +${step}.`]
+        };
+      }
+
+      if (kind === 1) {
+        const x = 2 + rand(9) * scale;
+        const a = 2 + rand(7) * scale;
+        const b = 1 + rand(12) * scale;
+        const c = a * x + b;
+        return {
+          type: "Equation decryption",
+          html: `Solve for <b>x</b>:<br><span class="sequence">${a}x + ${b} = ${c}</span>`,
+          answer: x,
+          hints: [`Undo the addition first, then divide.`, `Subtract ${b} from both sides, then divide by ${a}.`]
+        };
+      }
+
+      if (kind === 2) {
+        const a = 2 + rand(8) * scale;
+        const b = 3 + rand(9) * scale;
+        return {
+          type: "Symbol logic",
+          html: `◆ + ◆ = <b>${a * 2}</b><br>◆ + ● = <b>${a + b}</b><br>◆ × ● = <b>?</b>`,
+          answer: a * b,
+          hints: [`Find the value of each symbol from the first two lines.`, `◆ = ${a}. Work out ●, then multiply.`]
+        };
+      }
+
+      if (kind === 3) {
+        const first = 1 + rand(6) * scale;
+        const secondDifference = 2 + rand(5) * scale;
+        const firstDifference = 3 + rand(7) * scale;
+        const values = [first];
+        let difference = firstDifference;
+        for (let i = 1; i < 5; i++) {
+          values.push(values[i - 1] + difference);
+          difference += secondDifference;
+        }
+        return {
+          type: "Growing pattern",
+          html: `Find the next number:<br><span class="sequence">${values.join(" &nbsp; · &nbsp; ")} &nbsp; · &nbsp; ?</span>`,
+          answer: values[4] + difference,
+          hints: [`Compare the gaps between neighboring numbers.`, `The gaps grow by ${secondDifference} each time.`]
+        };
+      }
+
+      const small = 2 + rand(8) * scale;
+      const large = small + 2 + rand(9) * scale;
+      return {
+        type: "Logic coordinates",
+        html: `Two positive numbers have a sum of <b>${small + large}</b><br>and a product of <b>${small * large}</b>.<br>What is the larger number?`,
+        answer: large,
+        hints: [`Look for a factor pair of the product that adds to the sum.`, `${small} and ${large} are the pair. Enter the larger one.`]
+      };
+    }
+
+    function showScreen(name) {
+      Object.values(screens).forEach(screen => screen.classList.remove("active"));
+      screens[name].classList.add("active");
+    }
+
+    function loadLevel(n) {
+      level = Math.max(1, Math.floor(n));
+      puzzle = makePuzzle(level);
+      hintsUsed = 0;
+      $("levelText").textContent = level;
+      $("difficulty").textContent = difficultyFor(level);
+      $("typeLabel").textContent = puzzle.type;
+      $("question").innerHTML = puzzle.html;
+      $("answer").value = "";
+      $("message").textContent = "";
+      $("message").className = "message";
+      $("hintBox").textContent = "";
+      $("hintBox").classList.remove("show");
+      updateStatus();
+      showScreen("game");
+      $("answer").focus();
+    }
+
+    function updateStatus() {
+      $("hintCount").textContent = hintCredits;
+      $("hintBtn").disabled = hintCredits <= 0 || hintsUsed >= puzzle.hints.length;
+      $("progress").textContent =
+        `${completed} levels cleared · Next hint refill in ${10 - (completed % 10)} level${10 - (completed % 10) === 1 ? "" : "s"}`;
+    }
+
+    function submitAnswer() {
+      const raw = $("answer").value.trim();
+      if (!raw) {
+        $("message").textContent = "Enter a number to submit.";
+        $("message").className = "message bad";
+        return;
+      }
+
+      if (Number(raw) === puzzle.answer) {
+        $("message").textContent = "Correct! Protocol advanced.";
+        $("message").className = "message good";
+
+        if (!solvedLevels.includes(level)) {
+          solvedLevels.push(level);
+          completed++;
+          unlocked = Math.max(unlocked, level + 1);
+
+          if (completed % 10 === 0) {
+            hintCredits = Math.min(2, hintCredits + 2);
+            $("message").textContent = hintCredits === 2
+              ? "Correct! +2 hints refilled. Protocol advanced."
+              : "Correct! Protocol advanced. Hint bank is full.";
+          }
+          localStorage.setItem("mathfi-solved", JSON.stringify(solvedLevels));
+          localStorage.setItem("mathfi-completed", completed);
+          localStorage.setItem("mathfi-unlocked", unlocked);
+          localStorage.setItem("mathfi-hints", hintCredits);
+        }
+
+        updateStatus();
+        $("submitBtn").disabled = true;
+        setTimeout(() => {
+          $("submitBtn").disabled = false;
+          loadLevel(level + 1);
+        }, 1100);
+      } else {
+        $("message").textContent = "Not quite. Recheck the pattern and try again.";
+        $("message").className = "message bad";
+      }
+    }
+
+    function useHint() {
+      if (hintCredits <= 0 || hintsUsed >= puzzle.hints.length) return;
+      $("hintBox").textContent = puzzle.hints[hintsUsed];
+      $("hintBox").classList.add("show");
+      hintsUsed++;
+      hintCredits--;
+      localStorage.setItem("mathfi-hints", hintCredits);
+      updateStatus();
+    }
+
+    function openMenu() {
+      selectedLevel = Math.min(level, unlocked);
+      renderLevels();
+      showScreen("menu");
+    }
+
+    function renderLevels() {
+      const grid = $("levelGrid");
+      grid.innerHTML = "";
+      for (let n = 1; n <= unlocked; n++) {
+        const button = document.createElement("button");
+        button.className = "level" + (n === selectedLevel ? " selected" : "");
+        button.textContent = n;
+        button.addEventListener("click", () => {
+          selectedLevel = n;
+          renderLevels();
+        });
+        grid.appendChild(button);
+      }
+    }
+
+    $("submitBtn").addEventListener("click", submitAnswer);
+    $("answer").addEventListener("keydown", event => {
+      if (event.key === "Enter") submitAnswer();
+    });
+    $("hintBtn").addEventListener("click", useHint);
+    $("restartBtn").addEventListener("click", () => loadLevel(level));
+    $("menuBtn").addEventListener("click", openMenu);
+    $("playBtn").addEventListener("click", () => loadLevel(selectedLevel));
+    $("continueBtn").addEventListener("click", () => loadLevel(Math.min(level, unlocked)));
+
+    updateStatus();
+    loadLevel(1);
+  </script>
+</body>
+</html>
+````
